@@ -1,1 +1,131 @@
+import tkinter as tk
+from tkinter import messagebox
+from abc import ABC, abstractmethod
+from datetime import datetime
+from random import sample
+
+class Szoba(ABC):
+    def __init__(self, szobaszam):
+        self.szobaszam = szobaszam
+
+    @abstractmethod
+    def ar_szamolas(self):
+        pass
+
+class EgyagyasSzoba(Szoba):
+    def ar_szamolas(self):
+        return 5000
+
+class KetagyasSzoba(Szoba):
+    def ar_szamolas(self):
+        return 8000
+
+class Szalloda:
+    def __init__(self, nev):
+        self.nev = nev
+        self.szobak = []
+
+    def add_szoba(self, szoba):
+        self.szobak.append(szoba)
+
+class Foglalas:
+    def __init__(self, szoba, datum):
+        self.szoba = szoba
+        self.datum = datum
+
+class FoglalasKezelo:
+    def __init__(self, szalloda):
+        self.szalloda = szalloda
+        self.foglalasok = []
+
+    def foglalas(self, szobaszam, datum):
+        foglalas_datum = datetime.strptime(datum, '%Y-%m-%d')
+        if foglalas_datum < datetime.now():
+            return -1  # Érvénytelen dátum
+        for szoba in self.szalloda.szobak:
+            if szoba.szobaszam == szobaszam:
+                for foglalas in self.foglalasok:
+                    if foglalas.szoba.szobaszam == szobaszam and foglalas.datum == datum:
+                        return -2  # A szoba már foglalt ezen a napon
+                foglalas = Foglalas(szoba, datum)
+                self.foglalasok.append(foglalas)
+                return szoba.ar_szamolas()
+        return -3  # A megadott szobaszám nem található
+
+    def lemondas(self, szobaszam, datum):
+        for foglalas in self.foglalasok:
+            if foglalas.szoba.szobaszam == szobaszam and foglalas.datum == datum:
+                self.foglalasok.remove(foglalas)
+                return True
+        return False  # Foglalás nem található
+
+    def listaz_foglalasok(self):
+        foglalasok = ""
+        for foglalas in self.foglalasok:
+            foglalasok += f"Szoba: {foglalas.szoba.szobaszam}, Dátum: {foglalas.datum}\n"
+        return foglalasok
+
+# Szálloda, szobák és foglalások létrehozása
+szalloda = Szalloda("Pihenés Hotel")
+szalloda.add_szoba(EgyagyasSzoba("101"))
+szalloda.add_szoba(EgyagyasSzoba("102"))
+szalloda.add_szoba(KetagyasSzoba("201"))
+
+foglalas_kezelo = FoglalasKezelo(szalloda)
+
+# Generálunk egyedi foglalásokat különböző szobákra és dátumokra
+szobak_szamok = [szoba.szobaszam for szoba in szalloda.szobak]
+foglalasok_szamok = ['2024-05-16', '2024-05-17', '2024-05-18', '2024-05-19', '2024-05-20']
+
+for szoba_szam, datum in sample([(sz, dt) for sz in szobak_szamok for dt in foglalasok_szamok], 5):
+    foglalas_kezelo.foglalas(szoba_szam, datum)
+
+def foglalas():
+    szobaszam = szoba_szam_entry.get()
+    datum = datum_entry.get()
+    ar = foglalas_kezelo.foglalas(szobaszam, datum)
+    if ar == -1:
+        messagebox.showerror("Hiba", "Hibás dátum! A foglalás csak jövőbeli dátumra lehetséges.")
+    elif ar == -2:
+        messagebox.showerror("Hiba", "Ezen a napon már foglalt a szoba.")
+    elif ar == -3:
+        messagebox.showerror("Hiba", "A megadott szobaszám nem található.")
+    else:
+        messagebox.showinfo("Siker", f"A foglalás ára: {ar} Ft")
+
+def lemondas():
+    szobaszam = szoba_szam_entry.get()
+    datum = datum_entry.get()
+    if foglalas_kezelo.lemondas(szobaszam, datum):
+        messagebox.showinfo("Siker", "Foglalás sikeresen törölve.")
+    else:
+        messagebox.showerror("Hiba", "A megadott foglalás nem található.")
+
+def listazas():
+    foglalasok = foglalas_kezelo.listaz_foglalasok()
+    messagebox.showinfo("Foglalások", foglalasok)
+
+root = tk.Tk()
+root.title("Foglaláskezelő")
+
+szoba_szam_label = tk.Label(root, text="Szoba száma:")
+szoba_szam_label.grid(row=0, column=0, padx=10, pady=5)
+szoba_szam_entry = tk.Entry(root)
+szoba_szam_entry.grid(row=0, column=1, padx=10, pady=5)
+
+datum_label = tk.Label(root, text="Dátum (YYYY-MM-DD):")
+datum_label.grid(row=1, column=0, padx=10, pady=5)
+datum_entry = tk.Entry(root)
+datum_entry.grid(row=1, column=1, padx=10, pady=5)
+
+foglalas_button = tk.Button(root, text="Foglalás", command=foglalas)
+foglalas_button.grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky="we")
+
+lemondas_button = tk.Button(root, text="Lemondás", command=lemondas)
+lemondas_button.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky="we")
+
+listazas_button = tk.Button(root, text="Foglalások listázása", command=listazas)
+listazas_button.grid(row=4, column=0, columnspan=2, padx=10, pady=5, sticky="we")
+
+root.mainloop()
 
